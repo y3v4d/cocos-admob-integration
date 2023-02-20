@@ -2,6 +2,13 @@
 
 This example program showcases how to integrate AdMob for the Android platform in the newest version of Cocos Creator (3.7.1).
 
+<p align="middle">
+    <img src="docs/loading.jpg" width="200">
+    <img src="docs/loaded.jpg" width="200">
+    <img src="docs/ad.jpg" width="200">
+    <img src="docs/error.jpg" width="200">
+</p>
+
 ## Notes
 For current version of AdMob to work the project needs to be built with **minimum Android SDK version of 31**. Trying to compile the project with lower SDK will result in AdMob dependency error.
 
