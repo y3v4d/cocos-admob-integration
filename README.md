@@ -71,7 +71,7 @@ export class GameManager extends Component {
 ## Java
 
 All modifications were performed inside the `native/engine/android` directory, since it's the only way for now to modify the Android build without needing to rewrite the changes every build.
-For the purpose of the showcase, test application id and ad id is used. In the real project, these values should be replaced with real ids.
+For the purpose of the showcase, test Application ID and Ad ID are used. For the release of the real project, these values should be replaced with real IDs.
 
 There are two functions registered in the `AppActivity.java` that can be invoked by Typescript:
 - `loadInterstitial` - function that will load the interstitial ad and inform the Typescript of the status by using `loadInterstitialCompleted` bridge function. Invokes `loadInterstitial` function.
