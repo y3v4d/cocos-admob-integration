@@ -34,7 +34,9 @@ import androidx.annotation.NonNull;
 import com.cocos.lib.JsbBridge;
 import com.cocos.service.SDKWrapper;
 import com.cocos.lib.CocosActivity;
+import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.initialization.InitializationStatus;
@@ -45,38 +47,16 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 import java.util.Objects;
 
 public class AppActivity extends CocosActivity {
-    private InterstitialAd mInterstitalAd;
+    private InterstitialAd mInterstitialAd;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // DO OTHER INITIALIZATION BELOW
 
-        AppActivity app = this;
-
-        app.runOnUiThread(new Runnable() {
+        MobileAds.initialize(this, new OnInitializationCompleteListener() {
             @Override
-            public void run() {
-                MobileAds.initialize(app, new OnInitializationCompleteListener() {
-                    @Override
-                    public void onInitializationComplete(@NonNull InitializationStatus initializationStatus) {
-                        Log.d("AdMob", "Initialized successfully");
-                    }
-                });
-
-                AdRequest adRequest = new AdRequest.Builder().build();
-                InterstitialAd.load(app, "ca-app-pub-3940256099942544/1033173712", adRequest, new InterstitialAdLoadCallback() {
-                    @Override
-                    public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
-                        Log.d("AdMob", "Loaded interstitial ad");
-                        mInterstitalAd = interstitialAd;
-                    }
-                    @Override
-                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
-                        Log.d("AdMob", loadAdError.toString());
-                        mInterstitalAd = null;
-                    }
-                });
+            public void onInitializationComplete(@NonNull InitializationStatus initializationStatus) {
+                Log.d("AdMob", "Initialized successfully");
             }
         });
 
@@ -84,10 +64,15 @@ public class AppActivity extends CocosActivity {
             @Override
             public void onScript(String arg0, String arg1) {
                 if(Objects.equals(arg0, "showInterstitial")) {
-                    Log.d("AdMob", "showInterstitial from jsb");
+                    Log.d("JsbBridge", "showInterstitial invoked");
+
                     showInterstitial();
+                } else if(Objects.equals(arg0, "loadInterstitial")) {
+                    Log.d("JsbBridge", "loadInterstitial invoked");
+
+                    loadInterstitial();
                 } else {
-                    Log.d("Admob", "Invalid argument 0: " + arg0);
+                    Log.d("JsbBridge", "Invalid method name: " + arg0);
                 }
             }
         });
@@ -96,19 +81,55 @@ public class AppActivity extends CocosActivity {
     }
 
     protected void showInterstitial() {
-        if(mInterstitalAd != null) {
-            AppActivity app = this;
+        if(mInterstitialAd != null) {
+            this.runOnUiThread(() -> {
+                mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                    @Override
+                    public void onAdDismissedFullScreenContent() {
+                        Log.d("AdMob", "Dismissed fullscreen content callback");
 
-            app.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    mInterstitalAd.show(app);
-                }
+                        mInterstitialAd = null;
+                        JsbBridge.sendToScript("interstitialClosed");
+                    }
+
+                    @Override
+                    public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
+                        Log.d("AdMob", "Failed to show fullscreen content, error: " + adError);
+
+                        mInterstitialAd = null;
+                        JsbBridge.sendToScript("interstitialClosed", adError.toString());
+                    }
+                });
+
+                mInterstitialAd.show(this);
             });
-
         } else {
             Log.d("AdMob", "Interstitial not loaded");
+
+            JsbBridge.sendToScript("interstitialClosed", "Interstitial not loaded");
         }
+    }
+
+    protected void loadInterstitial() {
+        this.runOnUiThread(() -> {
+            AdRequest adRequest = new AdRequest.Builder().build();
+            InterstitialAd.load(this, "ca-app-pub-3940256099942544/1033173712", adRequest, new InterstitialAdLoadCallback() {
+                @Override
+                public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
+                    Log.d("AdMob", "Loaded interstitial ad");
+
+                    mInterstitialAd = interstitialAd;
+                    JsbBridge.sendToScript("loadInterstitialCompleted", "true");
+                }
+                @Override
+                public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                    Log.d("AdMob", loadAdError.toString());
+
+                    mInterstitialAd = null;
+                    JsbBridge.sendToScript("loadInterstitialCompleted", "false");
+                }
+            });
+        });
     }
 
     @Override
